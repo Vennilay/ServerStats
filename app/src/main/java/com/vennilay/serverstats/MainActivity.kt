@@ -23,7 +23,7 @@ import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 
 
-private const val SERVER_IP = "10.243.192.85"
+private const val SERVER_IP = "10.0.2.2"
 private const val PORT = "61208"
 private const val URL = "http://$SERVER_IP:$PORT/api/4/all"
 
@@ -87,13 +87,19 @@ private fun parseJsonToText(jsonString: String): String {
     val root = JSONObject(jsonString)
     val sb = StringBuilder()
 
-    val hostname = root.optString("hostname", "PC")
-    sb.append("Сервер: $hostname\n")
+    val system = root.optJSONObject("system")
+    val hostname = if (system != null) system.optString("hostname", "PC") else root.optString("hostname", "PC")
+    val osVersion = if (system != null) system.optString("os_version", "") else ""
+
+    sb.append("Сервер: ").append(hostname).append('\n')
+    if (osVersion.isNotEmpty()) {
+        sb.append("Релиз: ").append(osVersion).append('\n')
+    }
     sb.append("-------------------\n")
 
     val cpu = root.optJSONObject("cpu")
     if (cpu != null) {
-        sb.append("CPU Load: ${cpu.optDouble("total")}%\n")
+        sb.append("CPU Load: ").append(cpu.optDouble("total")).append("%\n")
     }
 
     val mem = root.optJSONObject("mem")
@@ -112,7 +118,6 @@ private fun parseJsonToText(jsonString: String): String {
             val name = disk.optString("mnt_point")
             val size = disk.optLong("size") / 1024 / 1024 / 1024.0
             val usedPercent = disk.optDouble("percent")
-
             if (size > 1.0) {
                 sb.append(String.format("%s: %.1f%% из %.0f GB\n", name, usedPercent, size))
             }
